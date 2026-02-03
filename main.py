@@ -1,5 +1,4 @@
 import email
-from pyexpat import model
 from turtle import mode
 from typing import Annotated
 from unittest import result
@@ -10,6 +9,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from pyexpat import model
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from starlette.exceptions import HTTPException as starlettehttpexception
@@ -115,12 +115,12 @@ def get_posts(post_id: int, db: Annotated[Session, Depends(get_db)]):
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
 
 @app.post(
-    '/api/posts',
-    response_model=list[PostResponse],
+    '/api/create_posts',
+    response_model=PostResponse,
     status_code=status.HTTP_201_CREATED)
 def create_post(post: PostCreate, db: Annotated[Session, Depends(get_db)]):
     result = db.execute(
-        select(models.User).where(models.User.id == user_id)
+        select(models.User).where(models.User.id == post.user_id)
     )
     user=result.scalars().first()
     if not user:
@@ -151,17 +151,18 @@ def home(request: Request, db: Annotated[Session,Depends(get_db)]):
     return templates.TemplateResponse(request, 'home.html', {"posts":posts,"title": "AI"},)
 
 @app.get('/posts/{post_id}', include_in_schema=False)
-def get_post(request: Request, post_id: int, db: Annotated[Session,Depends(get_db)]):
+def get_postpage(request: Request, post_id: int, db: Annotated[Session,Depends(get_db)]):
     result= db.execute(
         select(models.Posts).where(models.Posts.id == post_id)
     )
     post=result.scalars().first()
+    title= post.title
     if post:
-        return templates.TemplateResponse(request, 'posts.html', {"post":post, "title": post['title'][:50]})
+        return templates.TemplateResponse(request, 'posts.html', {"post":post, "title": title[:50]})
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
 
 @app.get('/Users/{user_id}/posts', include_in_schema=False)
-def get_user_posts(request: Request, user_id: int, db: Annotated[Session, Depends(get_db)]):
+def get_user_postspage(request: Request, user_id: int, db: Annotated[Session, Depends(get_db)]):
     result = db.execute(
         select(models.User).where(models.User.id == user_id)
     )
